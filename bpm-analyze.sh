@@ -21,6 +21,11 @@ which sox >/dev/null || {
 	echo "ERROR: Please install 'sox' (mp3 support required)"
   exit 1
 	} # Check for sox
+  
+sox --help | grep "AUDIO FILE FORMATS" | grep "mp3"
+if [ "$?" != "0" ]; then
+  echo "WARNING: sox may not be compiled with mp3 support"
+fi
 
 which ffmpeg >/dev/null || {
 	echo "ERROR: Please install 'ffmpeg'"
