@@ -17,6 +17,11 @@ which bpm-tag >/dev/null || {
   exit 1
 	} # Check for bpm-tools
   
+which sox >/dev/null || {
+	echo "ERROR: Please install 'sox' (mp3 support required)"
+  exit 1
+	} # Check for sox
+
 which ffmpeg >/dev/null || {
 	echo "ERROR: Please install 'ffmpeg'"
   exit 1
