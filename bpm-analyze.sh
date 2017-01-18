@@ -66,8 +66,8 @@ if [ "$?" = "0" ]; then
       echo "         Output of bpm was: $OUTPUT"
     fi
     rm "$MP3FILE"
-    echo "-----------------------------------------------------------"
   done
+  echo "-----------------------------------------------------------"
 fi
 
 # Warn if audio files were present in unsupported formats
