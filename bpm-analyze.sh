@@ -3,6 +3,7 @@
 # Automatically tag a folder of music with an auto-detected tempo in BPM
 # Usage: ./bpm-analyze.sh
 # With no arguments, searches for tracks in the current folder and attempts to tag them
+# Tracks that already have a BPM set will not have it overwritten
 
 # Minimum and maximum BPM to be detected:
 MIN=40
@@ -22,7 +23,7 @@ which sox >/dev/null || {
   exit 1
 	} # Check for sox
   
-sox --help | grep "AUDIO FILE FORMATS" | grep "mp3"
+sox --help | grep "AUDIO FILE FORMATS" | grep "mp3" >/dev/null
 if [ "$?" != "0" ]; then
   echo "WARNING: sox may not be compiled with mp3 support"
 fi
@@ -63,19 +64,26 @@ find ./ | grep '\.m4a$' > /dev/null 2>&1
 if [ "$?" = "0" ]; then
   for f in *.m4a; do
     echo "-----------------------------------------------------------"
-    MP3FILE="`basename "$f" .m4a`.mp3"
-    ffmpeg -loglevel panic -i "$f" -codec:a libmp3lame -b:a 192k "$MP3FILE"
-    OUTPUT="$(sox -t mp3 "$MP3FILE" -t raw -r 44100 -e float -c 1 /dev/stdout | bpm -m $MIN -x $MAX -f "%0.f")"
-    if [[ "$OUTPUT" =~ ^-?[0-9]+$ ]]; then
-      TEMP=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
-      echo "BPM was $OUTPUT for $f"
-      AtomicParsley "$f" --bpm $OUTPUT --output "$TEMP".m4a >/dev/null
-      mv "$TEMP".m4a "$f"
+    echo "Processing $f"
+    AtomicParsley "$f" --textdata | grep 'tmpo' > /dev/null
+    if [ "$?" != "0" ]; then
+      MP3FILE="`basename "$f" .m4a`.mp3"
+      ffmpeg -loglevel panic -i "$f" -codec:a libmp3lame -b:a 192k "$MP3FILE"
+      OUTPUT="$(sox -t mp3 "$MP3FILE" -t raw -r 44100 -e float -c 1 /dev/stdout | bpm -m $MIN -x $MAX -f "%0.f")"
+      if [[ "$OUTPUT" =~ ^-?[0-9]+$ ]]; then
+        TEMP=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+        echo "BPM was $OUTPUT"
+        AtomicParsley "$f" --bpm $OUTPUT --output "$TEMP".m4a >/dev/null
+        mv "$TEMP".m4a "$f"
+      else
+        echo "WARNING: File could not be processed. BPM was not an integer."
+        echo "         Output of bpm was: $OUTPUT"
+      fi
+      rm "$MP3FILE"
     else
-      echo "WARNING: $f could not be processed. BPM was not an integer."
-      echo "         Output of bpm was: $OUTPUT"
+      echo "BPM was already set:"
+      AtomicParsley "$f" --textdata | grep 'tmpo'
     fi
-    rm "$MP3FILE"
   done
   echo "-----------------------------------------------------------"
 fi
