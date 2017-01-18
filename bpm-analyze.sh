@@ -10,7 +10,7 @@ MAX=350
 
 # Any extra options to pass to bpm-tools when processing mp3 files only
 # (e.g. -n for dry run, -f to overwrite existing BPM tag)
-OPTIONS="-n"
+OPTIONS=""
 
 which bpm-tag >/dev/null || {
 	echo "ERROR: Please install 'bpm-tools' (http://www.pogo.org.uk/~mark/bpm-tools/)"
