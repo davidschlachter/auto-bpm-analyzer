@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/local/bin/bash
 
 # Automatically tag a folder of music with an auto-detected tempo in BPM
 # Usage: ./bpm-analyze.sh
@@ -8,6 +8,15 @@
 # Minimum and maximum BPM to be detected:
 MIN=40
 MAX=350
+
+# Don't process the same files twice
+if [ -f .alreadyprocessed ]; then
+	echo "BPMs already determined in this folder"
+	exit 1
+else
+	touch .alreadyprocessed
+	echo "`pwd`" >> ~/.auto-bpm-alreadyprocessed
+fi
 
 # Any extra options to pass to bpm-tools when processing mp3 files only
 # (e.g. -n for dry run, -f to overwrite existing BPM tag)
@@ -65,11 +74,11 @@ if [ "$?" = "0" ]; then
   for f in *.m4a; do
     echo "-----------------------------------------------------------"
     echo "Processing $f"
-    AtomicParsley "$f" --textdata | grep 'tmpo' > /dev/null
+    AtomicParsley "$f" --textdata | egrep 'Atom "tmpo" contains: [^0]' > /dev/null
     if [ "$?" != "0" ]; then
       MP3FILE="`basename "$f" .m4a`.mp3"
-      ffmpeg -loglevel panic -i "$f" -codec:a libmp3lame -b:a 192k "$MP3FILE"
-      OUTPUT="$(sox -t mp3 "$MP3FILE" -t raw -r 44100 -e float -c 1 /dev/stdout | bpm -m $MIN -x $MAX -f "%0.f")"
+      ffmpeg -threads 2 -loglevel panic -i "$f" -codec:a libmp3lame -b:a 128k "$MP3FILE" || (echo "Conversion with FFMPEG failed!" && continue)
+      OUTPUT="$(sox -t mp3 "$MP3FILE" -t raw -r 44100 -e float -c 1 /dev/stdout | bpm -m $MIN -x $MAX -f "%0.f")" || (echo "Conversion to raw audio with sox failed!" && continue)
       if [[ "$OUTPUT" =~ ^-?[0-9]+$ ]]; then
         TEMP=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
         echo "BPM was $OUTPUT"
